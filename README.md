@@ -197,7 +197,7 @@ Through this project, I strengthened my understanding of:
 
 ### Top 3 Books by Genre
 
-<img src="screenshots\Top_3_booksbygenre.png" width="250">
+<img src="screenshots\Top_3_booksbygenre.png" width="300">
 
 ### Cumulative Revenue Analysis
 
