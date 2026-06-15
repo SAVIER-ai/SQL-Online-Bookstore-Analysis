@@ -214,6 +214,5 @@ Through this project, I strengthened my understanding of:
 
 Aspiring Data Analyst | Business Analyst
 
-GitHub: https://github.com/SAVIER-ai
 
 LinkedIn: https://www.linkedin.com/in/sai-verma7
