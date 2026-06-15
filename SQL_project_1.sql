@@ -1,0 +1,187 @@
+-- Create Database
+CREATE DATABASE IF NOT EXISTS OnlineBookstore;
+
+-- Switch to the database
+USE OnlineBookstore;
+
+-- Create Tables
+CREATE TABLE Books (
+    Book_ID SERIAL PRIMARY KEY,
+    Title VARCHAR(100),
+    Author VARCHAR(100),
+    Genre VARCHAR(50),
+    Published_Year INT,
+    Price NUMERIC(10, 2),
+    Stock INT
+);
+CREATE TABLE Customers (
+    Customer_ID SERIAL PRIMARY KEY,
+    Name VARCHAR(100),
+    Email VARCHAR(100),
+    Phone VARCHAR(15),
+    City VARCHAR(50),
+    Country VARCHAR(150)
+);
+
+CREATE TABLE Orders (
+    Order_ID SERIAL PRIMARY KEY,
+    Customer_ID INT REFERENCES Customers(Customer_ID),
+    Book_ID INT REFERENCES Books(Book_ID),
+    Order_Date DATE,
+    Quantity INT,
+    Total_Amount NUMERIC(10, 2)
+);
+
+SELECT * FROM Books;
+SELECT * FROM Customers;
+SELECT * FROM orders;
+
+
+-- 1) Retrieve all books in the "Fiction" genre:
+select * from books 
+where Genre = "Fiction";
+
+-- 2) Find books published after the year 1950:
+select * from books 
+where Published_Year >1950;
+
+-- 3) List all customers from the Canada:
+select * from customers
+where Country = "Canada";
+
+-- 4) Show orders placed in November 2023:
+select * from orders
+where Order_Date between "2023/11/1" AND "2023/11/30";
+
+-- 5) Retrieve the total stock of books available:
+select sum(Stock) from books;
+
+-- 6) Find the details of the most expensive book:
+select * from books
+order by Price desc limit 1;
+
+-- 7) Show all customers who ordered more than 1 quantity of a book:
+select * from orders 
+where Quantity > 1; 
+
+-- 8) Retrieve all orders where the total amount exceeds $20:
+select * from orders 
+where Total_Amount > 20;
+
+-- 9) List all genres available in the Books table:
+select distinct Genre from books;
+
+
+-- 10) Find the book with the lowest stock:
+select * from books
+order by Stock limit 1;
+
+-- 11) Calculate the total revenue generated from all orders:
+select sum(Total_Amount) as total_r from orders;
+
+-- Advance Questions : 
+
+-- 1) Retrieve the total number of books sold for each genre:
+select b.Genre,sum(o.Quantity) from orders o 
+join books b on o.Book_ID = b.Book_ID
+group by Genre;
+
+
+-- 2) Find the average price of books in the "Fantasy" genre:
+select Genre,avg(Price) from books
+group by Genre
+having Genre = "Fantasy";
+
+-- 3) List customers who have placed at least 2 orders:
+select c.Name,c.Email,c.Phone,c.City,o.Customer_ID,count(o.Order_ID) as t_o from 
+orders o join customers c on c.Customer_ID = o.Customer_ID
+group by c.Customer_ID
+having t_o >= 2;
+ 
+-- 4) Find the most frequently ordered book:
+select c.Title,c.Author,o.Book_ID,count(o.Order_ID) as t_o from 
+orders o join books c on c.Book_ID = o.Book_ID
+group by c.Book_ID
+order by t_o desc limit 1;
+
+-- 5) Show the top 3 most expensive books of 'Fantasy' Genre :
+select Title,Genre,Price from books
+where Genre like "Fantasy"
+order by Price desc limit 3;
+
+-- 6) Retrieve the total quantity of books sold by each author:
+select b.Author,sum(o.Quantity) as t_q from books b 
+join orders o on b.Book_ID = o.Book_ID
+group by b.Author
+order by t_q desc;
+
+-- 7) List the cities where customers who spent over $30 are located:
+select distinct c.City,o.Total_Amount  
+from customers c join orders o on c.Customer_ID = o.Customer_ID
+where o.Total_Amount >30;
+
+-- 8) Find the customer who spent the most on orders:
+select c.Customer_ID,c.Name,Sum(o.Total_Amount) as t_a
+from customers c join orders o on c.Customer_ID = o.Customer_ID
+group by c.Customer_ID,c.Name
+order by t_a desc limit 1;
+ 
+-- 9) Calculate the stock remaining after fulfilling all orders:
+select b.Book_ID,b.Title,b.Stock,coalesce(sum(o.Quantity),0) as total,
+b.stock - coalesce(sum(o.Quantity),0) as remaining
+from books b left join orders o on b.Book_ID = o.Book_ID
+group by b.Book_ID;
+
+-- More Advanced Question:
+
+-- Find all customers whose total spending is greater than the average spending of all customers.
+select c.Customer_ID,c.Name,sum(o.Total_Amount) as t_a 
+from orders o 
+join customers c 
+on c.Customer_ID = o.Customer_ID
+group by c.Customer_ID,c.Name
+having sum(o.Total_Amount) > (
+	select avg(total_s)
+		from(
+			select o.Customer_ID,
+            sum(o.Total_Amount) as total_s 
+            from orders o
+			group by o.Customer_ID
+            ) customer_totals
+		);
+
+-- For each genre, find the top 3 books based on total quantity sold.
+select * from (select Book_ID,Title,Genre,total_qs,
+row_number()over(
+partition by Genre
+ORDER BY Genre, total_qs DESC
+) as ranking 
+from  (select o.Book_ID,b.Title,b.Genre,sum(o.Quantity) as total_qs 
+from orders o 
+join books b on b.Book_ID = o.Book_ID
+group by o.Book_ID,b.Title,b.Genre)book_sale)ranking_book
+where ranking<=3;
+
+-- Identify customers who have purchased books belonging to more than one genre.
+select count(distinct b.Genre) as g_count ,o.Customer_ID
+from orders o join books b
+on b.Book_ID = o.Book_ID
+group by o.Customer_ID
+having g_count >1
+order by o.Customer_ID; 
+
+-- Calculate cumulative revenue generated by the bookstore ordered by purchase date.
+select Order_Date,revenue,sum(revenue)
+over(order by Order_Date) as c_revenue
+from(select Order_Date,sum(Total_Amount)as revenue
+from orders
+group by Order_Date) t_revenue;
+
+-- Identify all books that have never appeared in any order.
+select b.Book_ID,b.Title from books b
+left join orders o on b.Book_ID = o.Book_ID
+where o.Order_ID is null;
+
+
+
+
